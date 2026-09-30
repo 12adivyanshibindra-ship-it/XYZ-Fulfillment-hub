@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>XYZ Fulfillment Hub - Warehouse Flow</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation & Action Header -->
+  <header class="top-header">
+    <div class="brand-section">
+      <div class="brand-logo">XYZ</div>
+      <div class="brand-text">
+        <h1>Fulfillment Hub <span class="brand-badge">Live Floor</span></h1>
+        <div class="brand-subtitle">Streamlined Warehouse Picking & Packing</div>
+      </div>
+    </div>
+
+    <!-- Quick Simulation & Utility Buttons -->
+    <div class="header-actions">
+      <button type="button" id="btn-add-priority" class="action-btn btn-priority-add" title="Simulate incoming high-priority order (floats to top)">
+        ⚡ + Priority Order
+      </button>
+      <button type="button" id="btn-add-regular" class="action-btn btn-regular-add" title="Simulate incoming standard order">
+        + Regular Order
+      </button>
+      <button type="button" id="btn-toggle-delay" class="action-btn" style="background:#fee2e2; color:#991b1b; border:1px solid #f87171;" title="Toggle Delayed Alert (Flashing Red Demo)">
+        🚨 Toggle Delay Test
+      </button>
+      <button type="button" id="btn-open-scanner" class="action-btn btn-scanner" title="Simulate Barcode Gun / Camera Scanner">
+        📷 Barcode Gun
+      </button>
+      <button type="button" id="btn-sound-toggle" class="action-btn btn-icon-toggle" title="Toggle Audio Feedback">
+        🔊
+      </button>
+      <button type="button" id="btn-contrast-toggle" class="action-btn btn-icon-toggle" title="Toggle High-Contrast / Dark Warehouse Mode">
+        🌙
+      </button>
+      <button type="button" id="btn-reset-data" class="action-btn btn-icon-toggle" title="Reset Demo Data">
+        🔄
+      </button>
+    </div>
+  </header>
+
+  <!-- At-a-Glance KPI Strip -->
+  <section class="kpi-strip">
+    <div class="kpi-items">
+      <div class="kpi-item">
+        <span>Active Orders:</span>
+        <span id="kpi-total" class="kpi-badge">0</span>
+      </div>
+      <div class="kpi-item">
+        <span>⚡ Priority:</span>
+        <span id="kpi-priority" class="kpi-badge priority">0</span>
+      </div>
+      <div class="kpi-item">
+        <span>🚨 Delayed (SLA Breach):</span>
+        <span id="kpi-delayed" class="kpi-badge delayed">0</span>
+      </div>
+      <div class="kpi-item">
+        <span>⚠️ Problem Lane:</span>
+        <span id="kpi-issues" class="kpi-badge issue">0</span>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="filter-search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search Order ID, SKU, customer..." autocomplete="off">
+      </div>
+      <select id="filter-select" class="filter-select">
+        <option value="all">All Orders</option>
+        <option value="priority">⚡ Priority Only</option>
+        <option value="delayed">🚨 Delayed (Flashing Red) Only</option>
+        <option value="issue">⚠️ Problem Lane Only</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Mobile Quick Lane Tabs (Touch-friendly lane switcher on phones/barcode guns) -->
+  <nav class="mobile-lane-tabs" aria-label="Workflow Lanes">
+    <button type="button" class="mobile-tab-btn active" data-lane="To Pick">
+      📋 To Pick (<span id="mtab-count-to-pick">0</span>)
+    </button>
+    <button type="button" class="mobile-tab-btn" data-lane="Packing">
+      📦 Packing (<span id="mtab-count-packing">0</span>)
+    </button>
+    <button type="button" class="mobile-tab-btn" data-lane="Staged">
+      📍 Staged (<span id="mtab-count-staged">0</span>)
+    </button>
+    <button type="button" class="mobile-tab-btn" data-lane="Shipped">
+      🚚 Shipped (<span id="mtab-count-shipped">0</span>)
+    </button>
+    <button type="button" class="mobile-tab-btn tab-issue" data-lane="Issue">
+      ⚠️ Issues (<span id="mtab-count-issue">0</span>)
+    </button>
+  </nav>
+
+  <!-- Main Kanban Board -->
+  <main class="kanban-wrapper">
+    <div class="kanban-board">
+
+      <!-- Column 1: To Pick -->
+      <section class="kanban-column is-mobile-active" id="lane-to-pick">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-icon">📋</span>
+            <span>To Pick</span>
+          </div>
+          <span class="column-count-badge" id="badge-to-pick">0</span>
+        </div>
+        <div class="cards-container" id="cards-to-pick">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Column 2: Packing -->
+      <section class="kanban-column" id="lane-packing">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-icon">📦</span>
+            <span>Packing</span>
+          </div>
+          <span class="column-count-badge" id="badge-packing">0</span>
+        </div>
+        <div class="cards-container" id="cards-packing">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Column 3: Staged -->
+      <section class="kanban-column" id="lane-staged">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-icon">📍</span>
+            <span>Staged</span>
+          </div>
+          <span class="column-count-badge" id="badge-staged">0</span>
+        </div>
+        <div class="cards-container" id="cards-staged">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Column 4: Shipped -->
+      <section class="kanban-column" id="lane-shipped">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-icon">🚚</span>
+            <span>Shipped</span>
+          </div>
+          <span class="column-count-badge" id="badge-shipped">0</span>
+        </div>
+        <div class="cards-container" id="cards-shipped">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Column 5: Dedicated Issue / Problem Lane -->
+      <section class="kanban-column lane-issue" id="lane-issue">
+        <div class="column-header">
+          <div class="column-title" style="color: #9a3412;">
+            <span class="column-icon">⚠️</span>
+            <span>Problem Lane</span>
+          </div>
+          <span class="column-count-badge" id="badge-issue">0</span>
+        </div>
+        <div class="cards-container" id="cards-issue">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Intuitive "Flag Issue" Modal -->
+  <div class="modal-backdrop" id="flag-issue-modal" role="dialog" aria-modal="true" aria-labelledby="flag-modal-title">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div class="modal-title" id="flag-modal-title">
+          <span>⚠️ Flag Problem:</span>
+          <span id="flag-modal-order-id" style="color:#f59e0b;">XYZ-0000</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-flag-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-weight: 700; color: var(--text-muted);">
+          Tap the reason below to immediately divert this order to the <strong>⚠️ Problem Lane</strong> for supervisor review:
+        </p>
+
+        <!-- Big touch-friendly issue selectors -->
+        <div class="issue-picker-grid">
+          <button type="button" class="btn-issue-choice" data-reason="Item Missing from Bin Location">
+            <span style="font-size:1.6rem;">📭</span>
+            <span>Item Missing from Bin Location</span>
+          </button>
+          <button type="button" class="btn-issue-choice" data-reason="Damaged / Broken Product or Seal">
+            <span style="font-size:1.6rem;">💔</span>
+            <span>Damaged / Broken Product or Seal</span>
+          </button>
+          <button type="button" class="btn-issue-choice" data-reason="Barcode Label Scratched or Unreadable">
+            <span style="font-size:1.6rem;">🏷️</span>
+            <span>Barcode Scratched / Unreadable</span>
+          </button>
+          <button type="button" class="btn-issue-choice" data-reason="Stock Quantity Mismatch in Shelf">
+            <span style="font-size:1.6rem;">🔢</span>
+            <span>Stock Count Mismatch in Shelf</span>
+          </button>
+          <button type="button" class="btn-issue-choice" data-reason="Wrong Product in Assigned Bin">
+            <span style="font-size:1.6rem;">🔀</span>
+            <span>Wrong Product in Assigned Bin</span>
+          </button>
+          <button type="button" class="btn-issue-choice" data-reason="Requires Heavy Equipment / Forklift">
+            <span style="font-size:1.6rem;">🚜</span>
+            <span>Requires Forklift / Heavy Assist</span>
+          </button>
+        </div>
+
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <label for="flag-custom-text" style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted);">
+            Or write custom issue note:
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="flag-custom-text" class="issue-custom-input" placeholder="Type specific problem description...">
+            <button type="button" id="btn-submit-custom-flag" class="action-btn" style="background:#ea580c; color:#fff; min-height:52px; padding:0 20px;">
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barcode Scanner Simulation Modal -->
+  <div class="modal-backdrop" id="scanner-modal" role="dialog" aria-modal="true" aria-labelledby="scanner-modal-title">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div class="modal-title" id="scanner-modal-title">
+          <span>📷 Warehouse Barcode Scanner</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-scanner-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Visual scanner viewport simulation -->
+        <div style="background:#0f172a; border-radius:12px; height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#38bdf8; position:relative; overflow:hidden; border:2px dashed #0284c7;">
+          <div style="position:absolute; width:80%; height:2px; background:#ef4444; box-shadow:0 0 10px #ef4444; animation:badgeAlertPulse 1.2s infinite ease-in-out;"></div>
+          <span style="font-size:2rem;">📷</span>
+          <span style="font-size:0.85rem; font-weight:700; color:#94a3b8; margin-top:6px;">ALIGN BARCODE IN VIEWFINDER</span>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="scanner-input" class="issue-custom-input" placeholder="Enter barcode or SKU (e.g. 8901234001 or SKU-NC-902)...">
+          <button type="button" id="btn-simulate-scan" class="action-btn btn-scanner" style="min-height:52px; padding:0 20px;">
+            Scan
+          </button>
+        </div>
+
+        <div>
+          <div style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:8px;">
+            Quick Tap Test Barcodes (Click to simulate instant scan):
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button type="button" class="action-btn scanner-preset-tag" data-barcode="8901234001" style="background:#e2e8f0; color:#1e293b; height:36px; font-size:0.8rem;">
+              🎧 Headset (8901234001)
+            </button>
+            <button type="button" class="action-btn scanner-preset-tag" data-barcode="8901234002" style="background:#e2e8f0; color:#1e293b; height:36px; font-size:0.8rem;">
+              🧤 Gloves (8901234002)
+            </button>
+            <button type="button" class="action-btn scanner-preset-tag" data-barcode="8901234004" style="background:#e2e8f0; color:#1e293b; height:36px; font-size:0.8rem;">
+              🖱️ Mouse (8901234004)
+            </button>
+            <button type="button" class="action-btn scanner-preset-tag" data-barcode="8901234007" style="background:#e2e8f0; color:#1e293b; height:36px; font-size:0.8rem;">
+              👓 Eyewear (8901234007)
+            </button>
+          </div>
+        </div>
+
+        <div id="scanner-results">
+          <!-- Result injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sensory Toast Feedback Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
